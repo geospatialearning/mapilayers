@@ -10,7 +10,8 @@ body {
   font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
 
-.ol-zoom {
+.ol-zoom-custom {
+  top: 0.5em;
   right: 0.5em;
 }
 

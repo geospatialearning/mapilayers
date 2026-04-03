@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onUnmounted, ref, watch } from 'vue'
+import { ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import {
   QDrawer,
@@ -12,54 +12,11 @@ import {
 } from 'quasar'
 import { useMapStore } from '@/stores/map'
 
-
-// ── Store ───────────────────────────────────────────────────────────
-
 const mapStore = useMapStore()
-const { map, isReady, basemaps, rasterLayers } = storeToRefs(mapStore)
+const { basemaps } = storeToRefs(mapStore)
 
 const open = defineModel<boolean>('modelValue', { default: true })
 const activeTab = ref('layers')
-
-// ── Layers tab: raster browsing ─────────────────────────────────────
-
-const showBrowser = ref(false)
-const files = ref<RasterFile[]>([])
-const fetching = ref(false)
-const loadingFile = ref<string | null>(null)
-const error = ref<string | null>(null)
-
-const toggleBrowser = async () => {
-  showBrowser.value = !showBrowser.value
-  if (showBrowser.value && files.value.length === 0) {
-    await fetchFiles()
-  }
-}
-
-const fetchFiles = async () => {
-  fetching.value = true
-  error.value = null
-
-  try {
-    const res = await fetch(`${API_BASE}/browse/`)
-    if (!res.ok) {
-      const body = await res.json()
-      throw new Error(body.detail || 'Failed to fetch datasets')
-    }
-    const data = await res.json()
-    files.value = data.files
-  } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Failed to fetch datasets'
-  } finally {
-    fetching.value = false
-  }
-}
-
-// ── Layers tab: layer management ────────────────────────────────────
-
-const toggleVisibility = (name: string) => {
-  mapStore.toggleRasterLayer(name)
-}
 </script>
 
 <template>
@@ -67,8 +24,8 @@ const toggleVisibility = (name: string) => {
     <!-- Header -->
     <div class="drawer-header">
       <div class="header-brand">
-        <QIcon name="satellite_alt" size="22px" />
-        <span class="header-title">GeoAnnotate</span>
+        <QIcon name="travel_explore" size="22px" />
+        <span class="header-title">MapiLayers</span>
       </div>
       <QBtn
         flat
@@ -202,147 +159,6 @@ const toggleVisibility = (name: string) => {
 .section-icon {
   color: #475569;
 }
-.section-actions {
-  margin-left: auto;
-}
-.section-btn {
-  color: #64748b;
-}
-.section-btn:hover {
-  color: #38bdf8;
-}
-
-
-/* ── File cards ────────────────────────────────────────────────── */
-.file-card {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  margin-bottom: 4px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.15s ease;
-  overflow: hidden;
-}
-.file-card:hover {
-  background: rgba(255, 255, 255, 0.06);
-}
-.file-card.file-loaded {
-  cursor: default;
-  opacity: 0.6;
-}
-.file-card.file-loading {
-  background: rgba(56, 189, 248, 0.06);
-}
-.file-icon {
-  color: #475569;
-  flex-shrink: 0;
-}
-.icon-loaded {
-  color: #2dd4bf;
-}
-.file-info {
-  flex: 1;
-  min-width: 0;
-}
-.file-name {
-  font-size: 13px;
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.file-size {
-  font-size: 11px;
-  color: #64748b;
-  margin-top: 1px;
-}
-.file-status {
-  flex-shrink: 0;
-}
-.loaded-badge {
-  font-size: 10px;
-  padding: 2px 8px;
-  border-radius: 4px;
-}
-.file-progress {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-}
-
-/* ── Layer list ────────────────────────────────────────────────── */
-.layer-list {
-  padding: 8px;
-}
-.layer-card {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  margin-bottom: 4px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  transition: background 0.15s ease, border-color 0.15s ease;
-}
-.layer-card:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.08);
-}
-.vis-btn-on {
-  color: #38bdf8;
-}
-.vis-btn-off {
-  color: #475569;
-}
-.layer-info {
-  flex: 1;
-  min-width: 0;
-}
-.layer-name {
-  font-size: 13px;
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.layer-meta {
-  font-size: 11px;
-  color: #64748b;
-  margin-top: 1px;
-}
-.remove-btn {
-  color: #475569;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-}
-.layer-card:hover .remove-btn {
-  opacity: 1;
-}
-.remove-btn:hover {
-  color: #f87171;
-}
-
-/* ── Empty state ───────────────────────────────────────────────── */
-.empty-layers {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 32px 14px;
-  color: #475569;
-  font-size: 13px;
-}
-.empty-hint {
-  font-size: 11px;
-  color: #334155;
-}
-
 /* ── Basemaps ──────────────────────────────────────────────────── */
 .basemap-header {
   margin-top: 4px;
@@ -389,18 +205,5 @@ const toggleVisibility = (name: string) => {
 .basemap-indicator.active {
   background: #38bdf8;
   box-shadow: 0 0 6px rgba(56, 189, 248, 0.4);
-}
-
-/* ── Transitions ───────────────────────────────────────────────── */
-.slide-down-enter-active,
-.slide-down-leave-active {
-  transition: all 0.25s ease;
-  max-height: 400px;
-  overflow: hidden;
-}
-.slide-down-enter-from,
-.slide-down-leave-to {
-  max-height: 0;
-  opacity: 0;
 }
 </style>

@@ -56,6 +56,12 @@ onMounted(() => {
       zoom: zoom.value,
     })
   })
+  window.map = map
+
+  // Change Zoom button postion
+  let zoomElement = map.getControls().getArray()[0]?.element;
+  zoomElement?.classList.add('ol-zoom-custom');
+  zoomElement?.classList.remove('ol-zoom');
   mapStore.setMap(map)
   moveEndListener = map.on('moveend', syncStoreFromMap)
   syncStoreFromMap()
