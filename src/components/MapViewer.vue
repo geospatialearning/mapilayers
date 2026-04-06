@@ -61,8 +61,8 @@ const areLonLatClose = (
 
 const fetchMapillaryImage = async (lon: number, lat: number) => {
   const token = import.meta.env.VITE_MAPILLARY_TOKEN
-  const d = 0.01 // ~1000m search radius
-  const url = `https://graph.mapillary.com/images?access_token=${token}&fields=id&bbox=${lon - d},${lat - d},${lon + d},${lat + d}&limit=1`
+  const d = 0.001 // ~100m search radius
+  const url = `https://graph.mapillary.com/images?access_token=${token}&fields=id,geometry&bbox=${lon - d},${lat - d},${lon + d},${lat + d}&limit=1`
 
   mapStore.mapillaryLoading = true
   try {
@@ -71,7 +71,10 @@ const fetchMapillaryImage = async (lon: number, lat: number) => {
     if (data.data?.length) {
       mapStore.setMapillaryImageId(data.data[0].id)
       if (map) {
-        map.getView().animate({ center: fromLonLat([lon, lat]), zoom: 17, duration: 600 })
+        const geom = data.data[0].geometry
+        const imgLon = geom?.coordinates?.[0] ?? lon
+        const imgLat = geom?.coordinates?.[1] ?? lat
+        map.getView().animate({ center: fromLonLat([imgLon, imgLat]), zoom: 17, duration: 600 })
       }
     } else {
       mapStore.mapillaryLoading = false

@@ -35,8 +35,8 @@ export interface RasterLayerEntry {
   visible: boolean
 }
 
-const DEFAULT_CENTER: LonLat = [-98.5795, 39.8283]
-const DEFAULT_ZOOM = 4
+const DEFAULT_CENTER: LonLat = [-122.34790517138612, 47.61063834404567]
+const DEFAULT_ZOOM = 17.75
 const API_BASE = 'http://localhost:8000'
 
 /** Convert XYZ tile coordinates to a Bing Maps quadkey string. */
@@ -86,7 +86,7 @@ export const useMapStore = defineStore('map', () => {
         new VectorTileLayer({
           source: new VectorTileSource({
             format: new MVT(),
-            url: `https://tiles.mapillary.com/maps/vtp/mly1_computed_public/2/{z}/{x}/{y}?access_token=${MAPILLARY_TOKEN}`,
+            url: `https://tiles.mapillary.com/maps/vtp/mly1/{z}/{x}/{y}?access_token=${MAPILLARY_TOKEN}`,
           }),
           visible: false,
         }),
