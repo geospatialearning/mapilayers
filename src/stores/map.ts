@@ -2,8 +2,11 @@ import { defineStore } from 'pinia'
 import { computed, markRaw, ref, shallowRef } from 'vue'
 import type Map from 'ol/Map'
 import TileLayer from 'ol/layer/Tile'
+import VectorTileLayer from 'ol/layer/VectorTile'
 import OSM from 'ol/source/OSM'
 import XYZ from 'ol/source/XYZ'
+import VectorTileSource from 'ol/source/VectorTile'
+import MVT from 'ol/format/MVT'
 import type { TileCoord } from 'ol/tilecoord'
 
 export type LonLat = [number, number]
@@ -11,6 +14,12 @@ export type LonLat = [number, number]
 export interface BasemapEntry {
   name: string
   layer: TileLayer
+  visible: boolean
+}
+
+export interface OverlayEntry {
+  name: string
+  layer: VectorTileLayer
   visible: boolean
 }
 
@@ -49,6 +58,49 @@ export const useMapStore = defineStore('map', () => {
   const zoom = ref(DEFAULT_ZOOM)
   const isReady = computed(() => map.value !== null)
   const rasterLayers = ref<RasterLayerEntry[]>([])
+  const mapillaryImageId = ref<string | null>(null)
+  const mapillaryPosition = ref<LonLat | null>(null)
+  const mapillaryBearing = ref(0)
+  const mapillaryFov = ref(90)
+  const mapillaryLoading = ref(false)
+
+  const MAPILLARY_TOKEN = import.meta.env.VITE_MAPILLARY_TOKEN
+
+  const mapillaryOverlays = ref<OverlayEntry[]>([
+    // {
+    //   name: 'Coverage',
+    //   layer: markRaw(
+    //     new VectorTileLayer({
+    //       source: new VectorTileSource({
+    //         format: new MVT(),
+    //         url: `https://tiles.mapillary.com/maps/vtp/mly1_public/2/{z}/{x}/{y}?access_token=${MAPILLARY_TOKEN}`,
+    //       }),
+    //       visible: false,
+    //     }),
+    //   ),
+    //   visible: false,
+    // },
+    {
+      name: 'Computed Coverage',
+      layer: markRaw(
+        new VectorTileLayer({
+          source: new VectorTileSource({
+            format: new MVT(),
+            url: `https://tiles.mapillary.com/maps/vtp/mly1_computed_public/2/{z}/{x}/{y}?access_token=${MAPILLARY_TOKEN}`,
+          }),
+          visible: false,
+        }),
+      ),
+      visible: false,
+    }
+  ])
+
+  const toggleOverlay = (name: string) => {
+    const entry = mapillaryOverlays.value.find((o) => o.name === name)
+    if (!entry) return
+    entry.visible = !entry.visible
+    entry.layer.setVisible(entry.visible)
+  }
 
   const basemaps = ref<BasemapEntry[]>([
     {
@@ -162,6 +214,27 @@ export const useMapStore = defineStore('map', () => {
     rasterLayers.value.splice(index, 1)
   }
 
+  const setMapillaryImageId = (id: string | null) => {
+    mapillaryImageId.value = id
+    if (!id) {
+      mapillaryPosition.value = null
+      mapillaryBearing.value = 0
+      mapillaryFov.value = 90
+    }
+  }
+
+  const setMapillaryPosition = (pos: LonLat) => {
+    mapillaryPosition.value = [...pos] as LonLat
+  }
+
+  const setMapillaryBearing = (bearing: number) => {
+    mapillaryBearing.value = bearing
+  }
+
+  const setMapillaryFov = (fov: number) => {
+    mapillaryFov.value = fov
+  }
+
   const toggleRasterLayer = (name: string) => {
     const entry = rasterLayers.value.find((l) => l.name === name)
     if (!entry) return
@@ -186,5 +259,16 @@ export const useMapStore = defineStore('map', () => {
     addRasterLayer,
     removeRasterLayer,
     toggleRasterLayer,
+    mapillaryImageId,
+    setMapillaryImageId,
+    mapillaryOverlays,
+    toggleOverlay,
+    mapillaryPosition,
+    mapillaryBearing,
+    mapillaryFov,
+    setMapillaryPosition,
+    setMapillaryBearing,
+    setMapillaryFov,
+    mapillaryLoading,
   }
 })

@@ -8,12 +8,12 @@ import {
   QTabPanels,
   QTabPanel,
   QBtn,
-  QIcon
+  QIcon,
 } from 'quasar'
 import { useMapStore } from '@/stores/map'
 
 const mapStore = useMapStore()
-const { basemaps } = storeToRefs(mapStore)
+const { basemaps, mapillaryOverlays } = storeToRefs(mapStore)
 
 const open = defineModel<boolean>('modelValue', { default: true })
 const activeTab = ref('layers')
@@ -54,6 +54,26 @@ const activeTab = ref('layers')
     <QTabPanels v-model="activeTab" animated class="tab-panels">
       <!-- ── Layers Tab ──────────────────────────────────────────── -->
       <QTabPanel name="layers" class="q-pa-none panel-content">
+        <!-- Mapillary Overlays -->
+        <div class="section-header">
+          <QIcon name="streetview" size="16px" class="section-icon" />
+          <span class="section-title">Mapillary</span>
+        </div>
+
+        <div class="basemap-list">
+          <div
+            v-for="ol in mapillaryOverlays"
+            :key="ol.name"
+            class="basemap-card"
+            :class="{ 'basemap-active': ol.visible }"
+            @click="mapStore.toggleOverlay(ol.name)"
+          >
+            <QIcon name="streetview" size="18px" :class="ol.visible ? 'basemap-icon-on' : 'basemap-icon-off'" />
+            <span class="basemap-name">{{ ol.name }}</span>
+            <div class="basemap-indicator" :class="{ active: ol.visible }"></div>
+          </div>
+        </div>
+
         <!-- Basemaps -->
         <div class="section-header basemap-header">
           <QIcon name="public" size="16px" class="section-icon" />
@@ -194,6 +214,7 @@ const activeTab = ref('layers')
   flex: 1;
   font-size: 13px;
   font-weight: 500;
+  color: #000;
 }
 .basemap-indicator {
   width: 8px;
@@ -206,4 +227,5 @@ const activeTab = ref('layers')
   background: #38bdf8;
   box-shadow: 0 0 6px rgba(56, 189, 248, 0.4);
 }
+
 </style>

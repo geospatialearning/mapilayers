@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { QLayout, QBtn, QPage, QPageContainer } from 'quasar'
 import MapViewer from './components/MapViewer.vue'
+import MapillaryViewer from './components/MapillaryViewer.vue'
 import LayerPanel from './components/LayerPanel.vue'
 
 const drawerOpen = ref(true)
@@ -14,6 +15,7 @@ const drawerOpen = ref(true)
     <QPageContainer>
       <QPage class="map-page">
         <MapViewer />
+        <MapillaryViewer />
         <transition name="fade-slide">
           <QBtn
             v-show="!drawerOpen"

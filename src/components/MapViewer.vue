@@ -6,13 +6,46 @@ import View from 'ol/View'
 import type { EventsKey } from 'ol/events'
 import { unByKey } from 'ol/Observable'
 import { fromLonLat, toLonLat } from 'ol/proj'
+import Overlay from 'ol/Overlay'
 import { useMapStore } from '@/stores/map'
 
 const mapTarget = ref<HTMLElement | null>(null)
 const mapStore = useMapStore()
-const { center, zoom, basemaps } = storeToRefs(mapStore)
+const { center, zoom, basemaps, mapillaryOverlays, mapillaryPosition, mapillaryBearing, mapillaryFov } = storeToRefs(mapStore)
 
+const cameraEl = ref<HTMLElement | null>(null)
+
+const makeArcPath = (fov: number) => {
+  const radius = 45
+  const cx = 50
+  const cy = 50
+  const fovRad = (Math.PI / 180) * fov
+  const arcStart = -Math.PI / 2 - fovRad / 2
+  const arcEnd = arcStart + fovRad
+  const sx = cx + radius * Math.cos(arcStart)
+  const sy = cy + radius * Math.sin(arcStart)
+  const ex = cx + radius * Math.cos(arcEnd)
+  const ey = cy + radius * Math.sin(arcEnd)
+  return `M ${cx} ${cy} L ${sx} ${sy} A ${radius} ${radius} 0 0 1 ${ex} ${ey} Z`
+}
+
+let currentRotation = 0
+
+const updateArc = () => {
+  if (!cameraEl.value) return
+  const path = cameraEl.value.querySelector('path')
+  const svg = cameraEl.value.querySelector('svg')
+  if (path) path.setAttribute('d', makeArcPath(mapillaryFov.value))
+  if (svg) {
+    let delta = mapillaryBearing.value - (((currentRotation % 360) + 360) % 360)
+    if (delta > 180) delta -= 360
+    if (delta < -180) delta += 360
+    currentRotation += delta
+    ;(svg as unknown as HTMLElement).style.transform = `rotateZ(${currentRotation}deg)`
+  }
+}
 let map: Map | null = null
+let positionOverlay: Overlay | null = null
 let moveEndListener: EventsKey | null = null
 
 const areNumbersClose = (left: number, right: number, tolerance = 0.000001) =>
@@ -25,6 +58,32 @@ const areLonLatClose = (
 ) =>
   areNumbersClose(currentCenter[0], nextCenter[0], tolerance) &&
   areNumbersClose(currentCenter[1], nextCenter[1], tolerance)
+
+const fetchMapillaryImage = async (lon: number, lat: number) => {
+  const token = import.meta.env.VITE_MAPILLARY_TOKEN
+  const d = 0.01 // ~1000m search radius
+  const url = `https://graph.mapillary.com/images?access_token=${token}&fields=id&bbox=${lon - d},${lat - d},${lon + d},${lat + d}&limit=1`
+
+  mapStore.mapillaryLoading = true
+  try {
+    const res = await fetch(url)
+    const data = await res.json()
+    if (data.data?.length) {
+      mapStore.setMapillaryImageId(data.data[0].id)
+      if (map) {
+        map.getView().animate({ center: fromLonLat([lon, lat]), zoom: 17, duration: 600 })
+      }
+    } else {
+      mapStore.mapillaryLoading = false
+    }
+  } catch { /* no nearby image */ }
+}
+
+const onMapClick = (evt: any) => {
+  const lonLat = toLonLat(evt.coordinate)
+  mapStore.mapillaryLoading = true
+  fetchMapillaryImage(lonLat[0]!, lonLat[1]!)
+}
 
 const syncStoreFromMap = () => {
   if (!map) {
@@ -62,8 +121,18 @@ onMounted(() => {
   let zoomElement = map.getControls().getArray()[0]?.element;
   zoomElement?.classList.add('ol-zoom-custom');
   zoomElement?.classList.remove('ol-zoom');
+  mapillaryOverlays.value.forEach((o) => map!.addLayer(o.layer as any))
+
+  positionOverlay = new Overlay({
+    element: cameraEl.value!,
+    positioning: 'center-center',
+    stopEvent: false,
+  })
+  map.addOverlay(positionOverlay)
+
   mapStore.setMap(map)
   moveEndListener = map.on('moveend', syncStoreFromMap)
+  map.on('singleclick', onMapClick)
   syncStoreFromMap()
 })
 
@@ -109,15 +178,57 @@ watch(
     }
   },
 )
+
+watch(mapillaryPosition, (pos) => {
+  if (!positionOverlay) return
+  if (!pos) {
+    positionOverlay.setPosition(undefined)
+    return
+  }
+  positionOverlay.setPosition(fromLonLat(pos))
+})
+
+watch(mapillaryBearing, () => updateArc())
+watch(mapillaryFov, () => updateArc())
 </script>
 
 <template>
   <div ref="mapTarget" class="map-viewer"></div>
+  <div ref="cameraEl" class="camera-marker">
+    <svg viewBox="0 0 100 100">
+      <path :d="makeArcPath(90)" fill="rgba(56, 189, 248, 0.35)" stroke="#38bdf8" stroke-width="1.5" stroke-linejoin="round" />
+    </svg>
+    <div class="camera-dot"></div>
+  </div>
 </template>
 
 <style scoped>
 .map-viewer {
   width: 100%;
   height: 100%;
+}
+
+.camera-marker {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  pointer-events: none;
+}
+.camera-marker svg {
+  width: 100%;
+  height: 100%;
+  transition: transform 0.15s ease;
+}
+.camera-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  background: #38bdf8;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.6);
 }
 </style>
