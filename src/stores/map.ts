@@ -210,9 +210,9 @@ export const useMapStore = defineStore('map', () => {
     const index = rasterLayers.value.findIndex((l) => l.name === name)
     if (index === -1) return
 
-    const entry = rasterLayers.value[index]
+    const entry = rasterLayers.value[index]!
     if (map.value) {
-      map.value.removeLayer(entry.layer)
+      map.value.removeLayer(entry.layer as any)
     }
     rasterLayers.value.splice(index, 1)
   }

@@ -109,10 +109,9 @@ onMounted(() => {
       zoom: zoom.value,
     })
   })
-  window.map = map
 
   // Change Zoom button postion
-  let zoomElement = map.getControls().getArray()[0]?.element;
+  let zoomElement = (map.getControls().getArray()[0] as any)?.element;
   zoomElement?.classList.add('ol-zoom-custom');
   zoomElement?.classList.remove('ol-zoom');
   mapillaryOverlays.value.forEach((o) => map!.addLayer(o.layer as any))
