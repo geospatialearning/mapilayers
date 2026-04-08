@@ -59,33 +59,24 @@ const areLonLatClose = (
   areNumbersClose(currentCenter[0], nextCenter[0], tolerance) &&
   areNumbersClose(currentCenter[1], nextCenter[1], tolerance)
 
-const fetchMapillaryImage = async (lon: number, lat: number) => {
-  const token = import.meta.env.VITE_MAPILLARY_TOKEN
-  const d = 0.001 // ~100m search radius
-  const url = `https://graph.mapillary.com/images?access_token=${token}&fields=id,geometry&bbox=${lon - d},${lat - d},${lon + d},${lat + d}&limit=1`
-
-  mapStore.mapillaryLoading = true
-  try {
-    const res = await fetch(url)
-    const data = await res.json()
-    if (data.data?.length) {
-      mapStore.setMapillaryImageId(data.data[0].id)
-      if (map) {
-        const geom = data.data[0].geometry
-        const imgLon = geom?.coordinates?.[0] ?? lon
-        const imgLat = geom?.coordinates?.[1] ?? lat
-        map.getView().animate({ center: fromLonLat([imgLon, imgLat]), zoom: 17, duration: 600 })
-      }
-    } else {
-      mapStore.mapillaryLoading = false
-    }
-  } catch { /* no nearby image */ }
-}
-
 const onMapClick = (evt: any) => {
-  const lonLat = toLonLat(evt.coordinate)
+  if (!map) return
+
+  let clickedFeature: any = null
+  map.forEachFeatureAtPixel(evt.pixel, (feature) => {
+    if (!clickedFeature && feature.getGeometry()?.getType() === 'Point') {
+      clickedFeature = feature
+    }
+  })
+
+  if (!clickedFeature) return
+
+  const imageId = clickedFeature.get('id') || clickedFeature.getId()
+  if (!imageId) return
+
   mapStore.mapillaryLoading = true
-  fetchMapillaryImage(lonLat[0]!, lonLat[1]!)
+  mapStore.setMapillaryImageId(String(imageId))
+  // map.getView().animate({ center: evt.coordinate, zoom: 17, duration: 600 })
 }
 
 const syncStoreFromMap = () => {
@@ -199,7 +190,7 @@ watch(mapillaryFov, () => updateArc())
   <div ref="mapTarget" class="map-viewer"></div>
   <div ref="cameraEl" class="camera-marker">
     <svg viewBox="0 0 100 100">
-      <path :d="makeArcPath(90)" fill="rgba(56, 189, 248, 0.35)" stroke="#38bdf8" stroke-width="1.5" stroke-linejoin="round" />
+      <path :d="makeArcPath(90)" fill="rgba(255, 69, 0, 0.45)" stroke="#ff4500" stroke-width="2" stroke-linejoin="round" />
     </svg>
     <div class="camera-dot"></div>
   </div>

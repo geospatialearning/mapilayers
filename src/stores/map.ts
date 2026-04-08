@@ -8,6 +8,7 @@ import XYZ from 'ol/source/XYZ'
 import VectorTileSource from 'ol/source/VectorTile'
 import MVT from 'ol/format/MVT'
 import type { TileCoord } from 'ol/tilecoord'
+import {Style, Circle as CircleStyle, Fill} from 'ol/style';
 
 export type LonLat = [number, number]
 
@@ -67,28 +68,30 @@ export const useMapStore = defineStore('map', () => {
   const MAPILLARY_TOKEN = import.meta.env.VITE_MAPILLARY_TOKEN
 
   const mapillaryOverlays = ref<OverlayEntry[]>([
-    // {
-    //   name: 'Coverage',
-    //   layer: markRaw(
-    //     new VectorTileLayer({
-    //       source: new VectorTileSource({
-    //         format: new MVT(),
-    //         url: `https://tiles.mapillary.com/maps/vtp/mly1_public/2/{z}/{x}/{y}?access_token=${MAPILLARY_TOKEN}`,
-    //       }),
-    //       visible: false,
-    //     }),
-    //   ),
-    //   visible: false,
-    // },
     {
-      name: 'Computed Coverage',
+      name: 'Street Imagery Feature Points',
       layer: markRaw(
         new VectorTileLayer({
           source: new VectorTileSource({
             format: new MVT(),
-            url: `https://tiles.mapillary.com/maps/vtp/mly1/{z}/{x}/{y}?access_token=${MAPILLARY_TOKEN}`,
+            maxZoom: 14,
+            tileUrlFunction: (coord: TileCoord) => {
+              const z = Math.min(coord[0]!, 14)
+              const x = coord[1]!
+              const y = coord[2]!
+              return `https://tiles.mapillary.com/maps/vtp/mly1_public/2/${z}/${x}/${y}?access_token=${MAPILLARY_TOKEN}`
+            },
           }),
-          visible: false,
+          style: (feature) => {
+            if (feature.getGeometry()?.getType() !== 'Point') return undefined
+            return new Style({
+              image: new CircleStyle({
+                radius: 3,
+                fill: new Fill({ color: '#05CB63' }),
+              }),
+            })
+          },
+          visible: false
         }),
       ),
       visible: false,
